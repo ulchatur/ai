@@ -18,11 +18,11 @@ on:
       node-type-id:
         description: 'Node Type ID'
         type: string
-        default: 'Standard_D32ads_v5'
+        default: 'Standard_DS3_v2'
       num-workers:
         description: 'Number of Workers'
         type: string
-        default: '2'
+        default: '1'
 
 jobs:
   create-job:
