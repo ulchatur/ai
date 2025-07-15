@@ -1,0 +1,90 @@
+name: Job cluster creation
+on:
+  workflow_dispatch:
+    inputs:
+      job-name:
+        description: 'Job Name'
+        type: string
+        default: 'weekly-scheduled-job'
+      cluster-name:
+        description: 'Cluster Name'
+        type: string
+        default: 'scheduled-cluster'
+      notebook-path:
+        description: 'Notebook Path in Workspace'
+        type: string
+        default: '/Users/vardhanullas7@gmail.com/hello.py'
+      spark-version:
+        description: 'Spark Version'
+        type: string
+        default: '15.2.x-scala2.12'
+      node-type-id:
+        description: 'Node Type ID'
+        type: string
+        default: 'Standard_D32ads_v5'
+      num-workers:
+        description: 'Number of Workers'
+        type: string
+        default: '2'
+      auto-terminate-mins:
+        description: 'Autotermination Minutes'
+        type: string
+        default: '60'
+
+jobs:
+  create-job:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Databricks CLI v0.18+
+        uses: databricks/setup-cli@main
+
+      - name: Create Databricks Job with Cluster & Schedule
+        id: create-job
+        run: |
+          job_json=$(cat <<EOF
+          {
+            "name": "${{ github.event.inputs.job-name }}",
+            "new_cluster": {
+              "cluster_name": "${{ github.event.inputs.cluster-name }}",
+              "spark_version": "${{ github.event.inputs.spark-version }}",
+              "node_type_id": "${{ github.event.inputs.node-type-id }}",
+              "num_workers": ${{ github.event.inputs.num-workers }},
+              "autotermination_minutes": ${{ github.event.inputs.auto-terminate-mins }}
+            },
+            "notebook_task": {
+              "notebook_path": "${{ github.event.inputs.notebook-path }}"
+            },
+            "schedule": {
+              "quartz_cron_expression": "0 0 10 ? * MON",
+              "timezone_id": "Asia/Kolkata",
+              "pause_status": "UNPAUSED"
+            },
+            "max_concurrent_runs": 1
+          }
+          EOF
+          )
+
+          echo "$job_json" > job.json
+
+          echo "Creating Databricks Job..."
+          job_response=$(databricks jobs create --json @job.json)
+
+          echo "$job_response" > job_response.json
+
+          job_id=$(echo "$job_response" | jq -r '.job_id')
+
+          echo "job-id=$job_id" >> $GITHUB_OUTPUT
+
+      - name: Print Job and Cluster Details
+        run: |
+          echo "✅ Job Created Successfully!"
+          echo "🆔 Job ID        : ${{ steps.create-job.outputs.job-id }}"
+          echo "📛 Job Name      : ${{ github.event.inputs.job-name }}"
+          echo "🖥️ Cluster Name  : ${{ github.event.inputs.cluster-name }}"
