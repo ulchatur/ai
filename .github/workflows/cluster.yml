@@ -1,12 +1,11 @@
-name: Job cluster creation1
-
+name: Job cluster creation
 on:
   workflow_dispatch:
     inputs:
       job-name:
         description: 'Job Name'
         type: string
-        default: 'weekly-scheduled-job'
+        default: 'scheduled-job'
       notebook-path:
         description: 'Notebook Path in Workspace'
         type: string
@@ -38,7 +37,7 @@ jobs:
       - name: Install Databricks CLI v0.18+
         uses: databricks/setup-cli@main
 
-      - name: Create Databricks Job with Cluster & Schedule (Multi-task format)
+      - name: Create Databricks Job with Cluster
         id: create-job
         run: |
           job_json=$(cat <<EOF
@@ -46,7 +45,7 @@ jobs:
             "name": "${{ github.event.inputs.job-name }}",
             "tasks": [
               {
-                "task_key": "hello-task",
+                "task_key": "test-task",
                 "notebook_task": {
                   "notebook_path": "${{ github.event.inputs.notebook-path }}"
                 },
@@ -76,6 +75,6 @@ jobs:
 
       - name: Print Job and Cluster Details
         run: |
-          echo "✅ Job Created Successfully!"
-          echo "🆔 Job ID        : ${{ steps.create-job.outputs.job-id }}"
-          echo "📛 Job Name      : ${{ github.event.inputs.job-name }}"
+          echo "Job Created Successfully!"
+          echo "Job ID        : ${{ steps.create-job.outputs.job-id }}"
+          echo "Job Name      : ${{ github.event.inputs.job-name }}"
