@@ -17,7 +17,7 @@ on:
       node-type-id:
         description: 'Node Type ID'
         type: string
-        default: 'Standard_DS3_v2'
+        default: 'Standard_D4ds_v5'
       num-workers:
         description: 'Number of Workers'
         type: string
