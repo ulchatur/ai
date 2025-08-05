@@ -69,7 +69,7 @@ jobs:
                   "runtime_engine": "PHOTON",
                   "data_security_mode": "SINGLE_USER",
                   "num_workers": 1,
-                  "node_type_id": "Serverless"
+                  "node_type_id": "Standard_D4s_v3"
                 }
               }
             ],
