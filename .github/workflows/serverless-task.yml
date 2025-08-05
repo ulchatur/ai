@@ -1,4 +1,4 @@
-name: Task creation
+name: Serverless Task creation
 
 on:
   workflow_dispatch:
