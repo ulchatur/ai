@@ -14,7 +14,7 @@ on:
       notebook-path-2:
         description: 'Notebook Path in Workspace (Task 2)'
         type: string
-        default: '/Users/test1@vardhanullas7gmail.onmicrosoft.com/hello-test1'
+        default: '/Users/test1@vardhanullas7gmail.onmicrosoft.com/hello-test'
       spark-version:
         description: 'Spark Version'
         type: string
