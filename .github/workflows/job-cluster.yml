@@ -1,4 +1,4 @@
-name: Job cluster creation
+name: Task creation
 
 on:
   workflow_dispatch:
