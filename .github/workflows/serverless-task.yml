@@ -1,0 +1,95 @@
+name: Serverless Task creation
+
+on:
+  workflow_dispatch:
+    inputs:
+      job-name:
+        description: 'Job Name'
+        type: string
+        default: 'scheduled-job'
+      notebook-path:
+        description: 'Notebook Path in Workspace (Task 1)'
+        type: string
+        default: '/Users/vardhanullas7_gmail.com#ext#@vardhanullas7gmail.onmicrosoft.com/hello-world'
+      notebook-path-2:
+        description: 'Notebook Path in Workspace (Task 2)'
+        type: string
+        default: '/Users/test1@vardhanullas7gmail.onmicrosoft.com/hello-test1'
+      spark-version:
+        description: 'Spark Version'
+        type: string
+        default: '15.2.x-scala2.12'
+
+jobs:
+  create-job:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Databricks CLI v0.18+
+        uses: databricks/setup-cli@main
+
+      - name: Create Databricks Job with 2 Tasks (Serverless)
+        id: create-job
+        run: |
+          job_json=$(cat <<EOF
+          {
+            "name": "${{ github.event.inputs.job-name }}",
+            "tasks": [
+              {
+                "task_key": "first-task",
+                "notebook_task": {
+                  "notebook_path": "${{ github.event.inputs.notebook-path }}"
+                },
+                "job_cluster_key": "serverless-cluster"
+              },
+              {
+                "task_key": "second-task",
+                "notebook_task": {
+                  "notebook_path": "${{ github.event.inputs.notebook-path-2 }}"
+                },
+                "depends_on": [
+                  {
+                    "task_key": "first-task"
+                  }
+                ],
+                "job_cluster_key": "serverless-cluster"
+              }
+            ],
+            "job_clusters": [
+              {
+                "job_cluster_key": "serverless-cluster",
+                "new_cluster": {
+                  "spark_version": "${{ github.event.inputs.spark-version }}",
+                  "runtime_engine": "PHOTON",
+                  "data_security_mode": "SINGLE_USER",
+                  "serverless": true
+                }
+              }
+            ],
+            "schedule": {
+              "quartz_cron_expression": "0 0 10 ? * MON",
+              "timezone_id": "America/New_York",
+              "pause_status": "UNPAUSED"
+            },
+            "max_concurrent_runs": 1
+          }
+          EOF
+          )
+          echo "$job_json" > job.json
+          echo "Creating Databricks Job..."
+          job_response=$(databricks jobs create --json @job.json)
+          echo "$job_response" > job_response.json
+          job_id=$(echo "$job_response" | jq -r '.job_id')
+          echo "job-id=$job_id" >> $GITHUB_OUTPUT
+
+      - name: Print Job Details
+        run: |
+          echo "✅ Job Created Successfully!"
+          echo "🆔 Job ID    : ${{ steps.create-job.outputs.job-id }}"
+          echo "📛 Job Name  : ${{ github.event.inputs.job-name }}"
