@@ -22,7 +22,7 @@ on:
       node-type-id:
         description: 'Node Type ID'
         type: string
-        default: 'Standard_D16ds_v6'
+        default: 'Standard_D4ds_v6'
       num-workers:
         description: 'Number of Workers'
         type: string
@@ -32,8 +32,8 @@ jobs:
   create-job:
     runs-on: ubuntu-latest
     env:
-      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_JOB }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_JOB }}
 
     steps:
       - name: Checkout repository
