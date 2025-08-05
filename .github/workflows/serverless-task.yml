@@ -68,7 +68,8 @@ jobs:
                   "spark_version": "${{ github.event.inputs.spark-version }}",
                   "runtime_engine": "PHOTON",
                   "data_security_mode": "SINGLE_USER",
-                  "num_workers": 1
+                  "num_workers": 1,
+                  "node_type_id": "Serverless"
                 }
               }
             ],
