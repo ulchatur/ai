@@ -67,7 +67,8 @@ jobs:
                 "new_cluster": {
                   "spark_version": "${{ github.event.inputs.spark-version }}",
                   "runtime_engine": "PHOTON",
-                  "data_security_mode": "SINGLE_USER"
+                  "data_security_mode": "SINGLE_USER",
+                  "num_workers": 1
                 }
               }
             ],
