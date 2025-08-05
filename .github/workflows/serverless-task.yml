@@ -1,4 +1,4 @@
-name: Serverless Task creation
+name: Task creation
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
       notebook-path-2:
         description: 'Notebook Path in Workspace (Task 2)'
         type: string
-        default: '/Users/test1@vardhanullas7gmail.onmicrosoft.com/hello-test'
+        default: '/Users/test1@vardhanullas7gmail.onmicrosoft.com/hello-test1'
       spark-version:
         description: 'Spark Version'
         type: string
@@ -34,7 +34,7 @@ jobs:
       - name: Install Databricks CLI v0.18+
         uses: databricks/setup-cli@main
 
-      - name: Create Databricks Job with 2 Tasks (Serverless)
+      - name: Create Databricks Job with 2 Tasks on Serverless Cluster
         id: create-job
         run: |
           job_json=$(cat <<EOF
@@ -67,8 +67,7 @@ jobs:
                 "new_cluster": {
                   "spark_version": "${{ github.event.inputs.spark-version }}",
                   "runtime_engine": "PHOTON",
-                  "data_security_mode": "SINGLE_USER",
-                  "serverless": true
+                  "data_security_mode": "SINGLE_USER"
                 }
               }
             ],
@@ -81,15 +80,17 @@ jobs:
           }
           EOF
           )
+
           echo "$job_json" > job.json
           echo "Creating Databricks Job..."
           job_response=$(databricks jobs create --json @job.json)
           echo "$job_response" > job_response.json
+
           job_id=$(echo "$job_response" | jq -r '.job_id')
           echo "job-id=$job_id" >> $GITHUB_OUTPUT
 
       - name: Print Job Details
         run: |
-          echo "✅ Job Created Successfully!"
-          echo "🆔 Job ID    : ${{ steps.create-job.outputs.job-id }}"
-          echo "📛 Job Name  : ${{ github.event.inputs.job-name }}"
+          echo "Job Created Successfully!"
+          echo "Job ID    : ${{ steps.create-job.outputs.job-id }}"
+          echo "Job Name  : ${{ github.event.inputs.job-name }}"
