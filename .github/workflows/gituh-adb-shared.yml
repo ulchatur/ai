@@ -1,6 +1,9 @@
 name: Deploy test_db branch to Databricks Shared Folder
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -21,9 +24,23 @@ jobs:
       - name: Install Databricks CLI
         run: |
           pip install databricks-cli
-      - name: Upload to Databricks Shared Folder
+
+      - name: Upload supported files to Databricks Shared Folder
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          databricks workspace import_dir . /Shared/ai --overwrite
+          # Allowed extensions for Databricks notebooks
+          exts="py ipynb sql scala r dbc html"
+
+          # Loop through repo and upload only supported files
+          for file in $(find . -type f); do
+            ext="${file##*.}"
+            if [[ " $exts " == *" $ext "* ]]; then
+              target_path="/Shared/ai/${file#./}"
+              echo "Importing $file -> $target_path"
+              databricks workspace import --overwrite "$file" "$target_path"
+            else
+              echo "Skipping unsupported file: $file"
+            fi
+          done
