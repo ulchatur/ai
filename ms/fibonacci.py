@@ -8,3 +8,6 @@ def fibonacci(n):
 
 if __name__ == "__main__":
     print("First 10 Fibonacci numbers:", fibonacci(10))
+
+
+# this is for testing purpose
