@@ -1,0 +1,62 @@
+name: Deploy branch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Databricks CLI
+        run: |
+          pip install databricks-cli
+
+      - name: Upload supported files to Databricks Shared Folder
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          for file in $(find . -type f); do
+            ext="${file##*.}"
+            target_path="/Shared/ai/${file#./}"
+
+            case "$ext" in
+              py)
+                lang="PYTHON"
+                ;;
+              scala)
+                lang="SCALA"
+                ;;
+              sql|SQL)
+                lang="SQL"
+                ;;
+              r|R)
+                lang="R"
+                ;;
+              ipynb|dbc|html)
+                lang=""
+                ;;
+              *)
+                echo "Skipping unsupported file: $file"
+                continue
+                ;;
+            esac
+
+            echo "Importing $file -> $target_path"
+            if [ -n "$lang" ]; then
+              databricks workspace import --overwrite -l $lang "$file" "$target_path"
+            else
+              databricks workspace import --overwrite "$file" "$target_path"
+            fi
+          done
