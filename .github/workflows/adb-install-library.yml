@@ -1,0 +1,49 @@
+name: ADB Install Libraries
+on:
+  workflow_dispatch:
+
+jobs:
+  create-adb-cluster:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI v0.18+
+        uses: databricks/setup-cli@main
+
+      - name: Create ADB Cluster
+        run: |
+          cat > cluster.json <<EOF
+          {
+            "cluster_name": "github-ci-cluster",
+            "spark_version": "13.3.x-scala2.12", 
+            "node_type_id": "Standard_DS3_v2",
+            "autoscale": {
+              "min_workers": 1,
+              "max_workers": 2
+            },
+            "autotermination_minutes": 30
+          }
+          EOF
+          databricks clusters create --json-file cluster.json
+
+      - name: Install Python Libraries
+        run: |
+          CLUSTER_ID=$(databricks clusters list --output JSON | jq -r '.clusters[] | select(.cluster_name=="github-ci-cluster") | .cluster_id')
+
+          # Install libraries one by one
+          databricks libraries install --cluster-id $CLUSTER_ID --pypi-package hyperopt
+          databricks libraries install --cluster-id $CLUSTER_ID --pypi-package python-dotenv
+          databricks libraries install --cluster-id $CLUSTER_ID --pypi-package dbutils-api
+          databricks libraries install --cluster-id $CLUSTER_ID --pypi-package xgboost
+          databricks libraries install --cluster-id $CLUSTER_ID --pypi-package azure-storage-file-datalake
+          databricks libraries install --cluster-id $CLUSTER_ID --pypi-package azure-identity
+          databricks libraries install --cluster-id $CLUSTER_ID --pypi-package requests
+
+          # Restart cluster to apply libs
+          databricks clusters restart --cluster-id $CLUSTER_ID
