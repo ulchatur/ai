@@ -1,6 +1,23 @@
 name: ADB Install Libraries
 on:
   workflow_dispatch:
+    inputs:
+      cluster-name:
+        description: 'Cluster Name'
+        type: string
+        default: 'sumana'
+      spark-version:
+        description: 'Spark Version'
+        type: string
+        default: '15.2.x-scala2.12'
+      node-type-id:
+        description: 'Node Type ID'
+        type: string
+        default: 'Standard_D32ads_v5'
+      num-workers:
+        description: 'Number of Workers'
+        type: string
+        default: '2'
 
 jobs:
   create-adb-cluster:
@@ -16,22 +33,38 @@ jobs:
       - name: Install Databricks CLI v0.18+
         uses: databricks/setup-cli@main
 
-      - name: Create ADB Cluster
+      - name: Create on-demand cluster
+        id: create-cluster
         run: |
-          cat > cluster.json <<EOF
+          cluster_json=$(cat <<EOF
           {
-            "cluster_name": "github-ci-cluster",
-            "spark_version": "13.3.x-scala2.12", 
-            "node_type_id": "Standard_DS3_v2",
-            "autoscale": {
-              "min_workers": 1,
-              "max_workers": 2
-            },
+            "cluster_name": "${{ github.event.inputs.cluster-name }}",
+            "spark_version": "${{ github.event.inputs.spark-version }}",
+            "node_type_id": "${{ github.event.inputs.node-type-id }}",
+            "num_workers": "${{ github.event.inputs.num-workers }}",
             "autotermination_minutes": 30
           }
           EOF
-          databricks clusters create --json-file cluster.json
+          )
+          echo "$cluster_json" > cluster_configuration.json
+          cluster_info=$(databricks clusters create --json @cluster_configuration.json --output json)
+          cat cluster_configuration.json
+          echo "cluster-id=$(echo "$cluster_info" | jq -r '.cluster_id')" >> $GITHUB_OUTPUT
 
+      - id: new-cluster-id
+        run: echo "cluster-id=${{ steps.create-cluster.outputs.cluster-id }}" >> $GITHUB_OUTPUT
+
+      - name: Check on-demand cluster state
+        run: |
+          cluster_id=${{ steps.create-cluster.outputs.cluster-id }}
+          cluster_state=""
+          while [ "$cluster_state" != "RUNNING" ]; do
+            sleep 10
+            cluster_info=$(databricks clusters get "$cluster_id")
+            cluster_state=$(echo "$cluster_info" | jq -r '.state')
+            echo "Current state: $cluster_state"
+          done
+          
       - name: Install Python Libraries
         run: |
           CLUSTER_ID=$(databricks clusters list --output JSON | jq -r '.clusters[] | select(.cluster_name=="github-ci-cluster") | .cluster_id')
